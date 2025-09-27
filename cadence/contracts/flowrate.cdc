@@ -99,7 +99,7 @@ access(all) contract FlowRate {
         pre {
             self.supplyTokensLimit.containsKey(supplyTokenVault.getType().identifier): "Can't supply this token"
             supplyTokenVault.balance <= self.supplyTokensLimit[supplyTokenVault.getType().identifier]! : "Amount greater than limit"
-            supplyTokenVault.balance >= 0.0 : "Are you joking bruv"
+            supplyTokenVault.balance >= 0.0 : "can't supply 0 tokens lol"
         }
         post {
             self.supplyTokensLimit[tokenVaultTypeIdentifier]! >= totalSuppliedAfter : "supply exceeds limit"
@@ -130,7 +130,7 @@ access(all) contract FlowRate {
     access(all) fun unsupply(bucket: &liquidityBucket, tokenIdentifier: String, amount: UFix64): @{FungibleToken.Vault} {
         pre {
             self.supplyTokensLimit.containsKey(tokenIdentifier): "Unsupported tokenIdentifier"
-            amount >= 0.0 : "Are you joking bruv"
+            amount >= 0.0 : "can't unsupply 0 tokens lol"
         }
 
         bucket.unSupplyTokens(tokenIdentifier: tokenIdentifier, amount: amount) // checks if un supplying doesn't leave bucket undercollateralized
@@ -140,7 +140,7 @@ access(all) contract FlowRate {
     access(all) fun borrow(bucket: &liquidityBucket, tokenIdentifier: String, amount: UFix64): @{FungibleToken.Vault} {
         pre {
             self.borrowTokensLimit.containsKey(tokenIdentifier): "Unsupported tokenIdentifier"
-            amount >= 0.0 : "Are you joking bruv"
+            amount >= 0.0 : "can't borrow 0 tokens lol"
         }
 
         bucket.borrowTokens(tokenIdentifier: tokenIdentifier, amount: amount) // checks if borrowing doesn't leave bucket undercollateralized
@@ -152,7 +152,7 @@ access(all) contract FlowRate {
     access(all) fun repay(bucket: &liquidityBucket, tokenVault: @{FungibleToken.Vault}) {
         pre {
             self.borrowTokensLimit.containsKey(tokenVault.getType().identifier): "Unsupported tokenIdentifier"
-            tokenVault.balance >= 0.0 : "Are you joking bruv"
+            tokenVault.balance >= 0.0 : "can't repay 0 tokens lol"
         }
 
         let tokenTypeIdentifier = tokenVault.getType().identifier
