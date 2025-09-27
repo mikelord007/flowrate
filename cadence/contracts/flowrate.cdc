@@ -98,6 +98,31 @@ access(all) contract FlowRate {
         return <- self.withdrawFromVault(tokenIdentifier: tokenIdentifier, amount: amount)
     }
 
+    access(all) fun borrow(bucket: &liquidityBucket, tokenIdentifier: String, amount: UFix64): @FungibleToken.Vault {
+        pre {
+            self.borrowTokensLimit.containsKey(tokenIdentifier): "Unsupported tokenIdentifier"
+            amount >= 0.0 : "Are you joking bruv"
+        }
+
+        bucket.borrowTokens(tokenIdentifier: tokenIdentifier, amount: amount) // checks if borrowing doesn't leave bucket undercollateralized
+
+        return <- self.withdrawFromVault(tokenIdentifier: tokenIdentifier, amount: amount)
+
+    }
+
+    access(all) fun repay(bucket: &liquidityBucket, tokenVault: @FungibleToken.Vault) {
+        pre {
+            self.borrowTokensLimit.containsKey(tokenVault.getType().identifier): "Unsupported tokenIdentifier"
+            tokenVault.balance >= 0.0 : "Are you joking bruv"
+        }
+
+        let tokenTypeIdentifier = tokenVault.getType().identifier
+        let tokenAmount = tokenVault.balance
+
+        self.depositToVault(tokenIdentifier: tokenTypeIdentifier, supplyVault: <- tokenVault)
+        bucket.repayTokens(tokenIdentifier: tokenTypeIdentifier, amount: tokenAmount)
+    }
+
     access(all) fun checkIfBucketIsUnderCollateralized(bucket: UInt64) : Bool {
         var totalSupply = 0.0
         var totalDebt = 0.0
@@ -121,6 +146,36 @@ access(all) contract FlowRate {
 
     access(all) fun fetchPriceFromOracle(type: String): UFix64 {
         return 1.0 // keeping it simple for this hack
+    }
+
+    access(all) fun totalSupplied(tokenIdentifier: String): UFix64 {
+        var totalSupplied = 0.0
+
+        Lending_Borrow.suppliedTokens.forEachKey(fun (bucket: UInt64): Bool {
+            
+            if(Lending_Borrow.suppliedTokens[bucket]![tokenIdentifier] != nil) {
+                totalSupplied = totalSupplied + self.fetchPriceFromOracle(type: tokenIdentifier) * Lending_Borrow.suppliedTokens[bucket]![tokenIdentifier]!
+            }
+
+            return true
+        })
+
+        return totalSupplied 
+    }
+
+    access(all) fun totalBorrowed(tokenIdentifier: String): UFix64 {
+        var totalBorrowed = 0.0
+
+        Lending_Borrow.borrowedTokens.forEachKey(fun (bucket: UInt64): Bool {
+            
+            if(Lending_Borrow.borrowedTokens[bucket]![tokenIdentifier] != nil) {
+                totalBorrowed = totalBorrowed + self.fetchPriceFromOracle(type: tokenIdentifier) * Lending_Borrow.borrowedTokens[bucket]![tokenIdentifier]!
+            }
+            
+            return true
+        })
+
+        return totalBorrowed
     }
 
     access(contract) fun depositToVault(tokenIdentifier: String, supplyVault: @FungibleToken.Vault) {
