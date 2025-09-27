@@ -10,6 +10,18 @@ access(all) contract FlowRate {
 
     access(all) resource bucketList {
         access(all) let holdingBucketsList: [UInt64]
+
+        access(contract) fun addBucketToList(bucketID: UInt64) {
+            self.holdingBucketsList.append(bucketID)
+        }
+
+        access(contract) fun removeBucketToList(bucketID: UInt64) {
+            self.holdingBucketsList.remove(at: self.holdingBucketsList.firstIndex(of: bucketID)!)
+        }
+
+        init() {
+            self.holdingBucketsList = []
+        }
     }
 
     access(all) resource liquidityBucket {
@@ -19,14 +31,23 @@ access(all) contract FlowRate {
 
         access(contract) fun unSupplyTokens(tokenIdentifier: String, amount: UFix64) {
             FlowRate.suppliedTokens[self.uuid] = {tokenIdentifier: (FlowRate.suppliedTokens[self.uuid]![tokenIdentifier] != nil ? FlowRate.suppliedTokens[self.uuid]![tokenIdentifier]! : 0.0) - amount}
+
+            //todo: check if undercollateralized
         }
 
         access(contract) fun borrowTokens(tokenIdentifier: String, amount: UFix64) {
             FlowRate.borrowedTokens[self.uuid] = {tokenIdentifier: (FlowRate.borrowedTokens[self.uuid]![tokenIdentifier] != nil ? FlowRate.borrowedTokens[self.uuid]![tokenIdentifier]! : 0.0) + amount}
+
+            //todo: check if undercollateralized
         }
 
         access(contract) fun repayTokens(tokenIdentifier: String, amount: UFix64) {
             FlowRate.borrowedTokens[self.uuid] = {tokenIdentifier: (FlowRate.borrowedTokens[self.uuid]![tokenIdentifier] != nil ? FlowRate.borrowedTokens[self.uuid]![tokenIdentifier]! : 0.0) - amount}
+        }
+        
+        init() {
+            FlowRate.suppliedTokens[self.uuid] = {}
+            FlowRate.borrowedTokens[self.uuid] = {}
         }
 
     }
