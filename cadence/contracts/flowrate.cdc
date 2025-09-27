@@ -1,4 +1,4 @@
-import FungibleToken from "../../imports/f233dcee88fe0abe/FungibleToken.cdc"
+import "FungibleToken"
 
 
 access(all) contract FlowRate {
@@ -8,7 +8,7 @@ access(all) contract FlowRate {
     access(all) let suppliedTokens: {UInt64: {String: UFix64}} // UUID of liquidity Bucket : {Type Identifier of Token : Amount of supply}
     access(all) let borrowedTokens: {UInt64: {String: UFix64}} // UUID of liquidity Bucket : {Type Identifier of Token : Amount of debt}
     
-    access(all) let tokenVaults: @{String: {FungibleToken.Vault}} // Type Identifier of Token : Vault
+    access(all) var tokenVaults: @{String: {FungibleToken.Vault}} // Type Identifier of Token : Vault
 
     access(all) let AdminResourceStoragePath: StoragePath
     access(all) let bucketListStoragePath: StoragePath
@@ -256,7 +256,7 @@ access(all) contract FlowRate {
         self.suppliedTokens = {}
         self.borrowedTokens = {}
         self.tokenVaults <- {}
-        self.AdminResourceStoragePath = /storage/LandBadmin
+        self.AdminResourceStoragePath = /storage/adminResourcePath
         self.bucketListStoragePath = /storage/bucketList
         self.bucketListPublicPath = /public/bucketList
         self.liquidityBucketStorageTemplate = "liquidityBucket" // + add id at end
