@@ -55,7 +55,39 @@ access(all) contract FlowRate {
     }
 
     access(all) resource Administrator {
-        //todo: add functions to modify the borrowLimitPerBucket, supplyTokensLimit, borrowTokensLimit
+        pub fun modifyBorrowLimitPerBucket(newLimit : UFix64) {
+            Lending_Borrow.borrowLimitPerBucket = newLimit
+        }
+
+        pub fun modifySupplyTokensLimit(supplyToken: String, limit: UFix64) {
+            Lending_Borrow.supplyTokensLimit[supplyToken] = limit
+        }
+
+        pub fun modifyBorrowTokensLimit(borrowToken: String, limit: UFix64) {
+            Lending_Borrow.borrowTokensLimit[borrowToken] = limit
+        }
+
+        pub fun initTokenVault(tokenIdentifier: String, vault: @FungibleToken.Vault): @FungibleToken.Vault? {
+            if(Lending_Borrow.tokenVaults[tokenIdentifier] == nil ) {
+                Lending_Borrow.tokenVaults[tokenIdentifier] <-! vault
+                return nil
+            }
+
+            return <- vault
+        }
+
+        pub fun liquidateUnderCollateralizedBuckets() {
+            Lending_Borrow.borrowedTokens.forEachKey(fun (key: UInt64): Bool {
+                let underCollateralized = Lending_Borrow.checkIfBucketIsUnderCollateralized(bucket: key)
+
+                if(underCollateralized) {
+                    Lending_Borrow.suppliedTokens.insert(key: key, {})
+                    Lending_Borrow.borrowedTokens.insert(key: key, {})
+                }
+
+                return true
+            })
+        }
     }
 
     access(all) fun supply(supplyTokenVault: @FungibleToken.Vault, existingLiquidityBucket: @liquidityBucket?, bucketList: &bucketList): @liquidityBucket {
