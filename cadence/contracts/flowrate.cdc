@@ -53,7 +53,47 @@ access(all) contract FlowRate {
     }
 
     access(all) resource Administrator {
+        //todo: add functions to modify the borrowLimitPerBucket, supplyTokensLimit, borrowTokensLimit
+    }
 
+    access(all) fun supply(supplyTokenVault: @FungibleToken.Vault, existingLiquidityBucket: @liquidityBucket?, bucketList: &bucketList): @liquidityBucket {
+        pre {
+            self.supplyTokensLimit.containsKey(supplyTokenVault.getType().identifier): "Can't supply this token"
+            supplyTokenVault.balance <= self.supplyTokensLimit[supplyTokenVault.getType().identifier]! : "Amount greater than limit"
+            supplyTokenVault.balance >= 0.0 : "Are you joking bruv"
+        }
+        post {
+            //todo: check if supply exceeds limit
+        }
+
+        let tokenVaultTypeIdentifier = supplyTokenVault.getType().identifier
+        let supplyAmount = supplyTokenVault.balance
+
+        self.depositToVault(tokenIdentifier: tokenVaultTypeIdentifier, supplyVault: <- supplyTokenVault)
+
+        if(existingLiquidityBucket != nil) {
+            let returnBucket <- existingLiquidityBucket!
+            returnBucket.supplyTokens(tokenIdentifier: tokenVaultTypeIdentifier, amount: supplyAmount)
+            return <- returnBucket
+        }
+        else {
+            destroy existingLiquidityBucket
+        }
+
+        let newBucket <- create liquidityBucket()
+        newBucket.supplyTokens(tokenIdentifier: tokenVaultTypeIdentifier, amount: supplyAmount)
+        bucketList.addBucketToList(bucketID: newBucket.uuid)
+        return <- newBucket
+    }
+
+    access(all) fun unsupply(bucket: &liquidityBucket, tokenIdentifier: String, amount: UFix64): @FungibleToken.Vault {
+        pre {
+            self.supplyTokensLimit.containsKey(tokenIdentifier): "Unsupported tokenIdentifier"
+            amount >= 0.0 : "Are you joking bruv"
+        }
+
+        bucket.unSupplyTokens(tokenIdentifier: tokenIdentifier, amount: amount) // checks if un supplying doesn't leave bucket undercollateralized
+        return <- self.withdrawFromVault(tokenIdentifier: tokenIdentifier, amount: amount)
     }
 
     init() {
