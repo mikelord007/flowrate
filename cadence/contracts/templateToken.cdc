@@ -177,7 +177,7 @@ access(all) contract templateToken: FungibleToken {
         /// Function that mints new tokens, adds them to the total supply,
         /// and returns them to the calling context.
         ///
-        access(all) fun mintTokens(amount: UFix64, recipient: Capability<&{FungibleToken.Receiver}>): @templateToken.Vault {
+        access(all) fun mintTokens(amount: UFix64): @templateToken.Vault {
             templateToken.totalSupply = templateToken.totalSupply + amount
             let vault <-create Vault(balance: amount)
             emit TokensMinted(amount: amount, type: vault.getType().identifier)
