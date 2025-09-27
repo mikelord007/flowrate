@@ -8,7 +8,7 @@ access(all) contract FlowRate {
     access(all) let suppliedTokens: {UInt64: {String: UFix64}} // UUID of liquidity Bucket : {Type Identifier of Token : Amount of supply}
     access(all) let borrowedTokens: {UInt64: {String: UFix64}} // UUID of liquidity Bucket : {Type Identifier of Token : Amount of debt}
     
-    access(all) let tokenVaults: @{String: FungibleToken.Vault} // Type Identifier of Token : Vault
+    access(all) let tokenVaults: @{String: {FungibleToken.Vault}} // Type Identifier of Token : Vault
 
     access(all) let AdminResourceStoragePath: StoragePath
     access(all) let bucketListStoragePath: StoragePath
@@ -72,7 +72,7 @@ access(all) contract FlowRate {
             FlowRate.borrowTokensLimit[borrowToken] = limit
         }
 
-        access(all) fun initTokenVault(tokenIdentifier: String, vault: @FungibleToken.Vault): @FungibleToken.Vault? {
+        access(all) fun initTokenVault(tokenIdentifier: String, vault: @{FungibleToken.Vault}): @{FungibleToken.Vault}? {
             if(FlowRate.tokenVaults[tokenIdentifier] == nil ) {
                 FlowRate.tokenVaults[tokenIdentifier] <-! vault
                 return nil
@@ -95,18 +95,20 @@ access(all) contract FlowRate {
         }
     }
 
-    access(all) fun supply(supplyTokenVault: @FungibleToken.Vault, existingLiquidityBucket: @liquidityBucket?, bucketList: &bucketList): @liquidityBucket {
+    access(all) fun supply(supplyTokenVault: @{FungibleToken.Vault}, existingLiquidityBucket: @liquidityBucket?, bucketList: &bucketList): @liquidityBucket {
         pre {
             self.supplyTokensLimit.containsKey(supplyTokenVault.getType().identifier): "Can't supply this token"
             supplyTokenVault.balance <= self.supplyTokensLimit[supplyTokenVault.getType().identifier]! : "Amount greater than limit"
             supplyTokenVault.balance >= 0.0 : "Are you joking bruv"
         }
         post {
-            self.supplyTokensLimit[tokenVaultTypeIdentifier]! >= self.totalSupplied(tokenIdentifier: tokenVaultTypeIdentifier) : "supply exceeds limit"
+            self.supplyTokensLimit[tokenVaultTypeIdentifier]! >= totalSuppliedAfter : "supply exceeds limit"
         }
 
         let tokenVaultTypeIdentifier = supplyTokenVault.getType().identifier
         let supplyAmount = supplyTokenVault.balance
+        let totalSuppliedAfter = self.totalSupplied(tokenIdentifier: tokenVaultTypeIdentifier) + supplyAmount
+
 
         self.depositToVault(tokenIdentifier: tokenVaultTypeIdentifier, supplyVault: <- supplyTokenVault)
 
@@ -125,7 +127,7 @@ access(all) contract FlowRate {
         return <- newBucket
     }
 
-    access(all) fun unsupply(bucket: &liquidityBucket, tokenIdentifier: String, amount: UFix64): @FungibleToken.Vault {
+    access(all) fun unsupply(bucket: &liquidityBucket, tokenIdentifier: String, amount: UFix64): @{FungibleToken.Vault} {
         pre {
             self.supplyTokensLimit.containsKey(tokenIdentifier): "Unsupported tokenIdentifier"
             amount >= 0.0 : "Are you joking bruv"
@@ -135,7 +137,7 @@ access(all) contract FlowRate {
         return <- self.withdrawFromVault(tokenIdentifier: tokenIdentifier, amount: amount)
     }
 
-    access(all) fun borrow(bucket: &liquidityBucket, tokenIdentifier: String, amount: UFix64): @FungibleToken.Vault {
+    access(all) fun borrow(bucket: &liquidityBucket, tokenIdentifier: String, amount: UFix64): @{FungibleToken.Vault} {
         pre {
             self.borrowTokensLimit.containsKey(tokenIdentifier): "Unsupported tokenIdentifier"
             amount >= 0.0 : "Are you joking bruv"
@@ -147,7 +149,7 @@ access(all) contract FlowRate {
 
     }
 
-    access(all) fun repay(bucket: &liquidityBucket, tokenVault: @FungibleToken.Vault) {
+    access(all) fun repay(bucket: &liquidityBucket, tokenVault: @{FungibleToken.Vault}) {
         pre {
             self.borrowTokensLimit.containsKey(tokenVault.getType().identifier): "Unsupported tokenIdentifier"
             tokenVault.balance >= 0.0 : "Are you joking bruv"
@@ -225,8 +227,8 @@ access(all) contract FlowRate {
         return totalBorrowed
     }
 
-    access(contract) fun depositToVault(tokenIdentifier: String, supplyVault: @FungibleToken.Vault) {
-        var tempVault: @FungibleToken.Vault? <- nil
+    access(contract) fun depositToVault(tokenIdentifier: String, supplyVault: @{FungibleToken.Vault}) {
+        var tempVault: @{FungibleToken.Vault}? <- nil
         tempVault <-> self.tokenVaults[tokenIdentifier]
         var finalVault <- tempVault!
         finalVault.deposit(from: <- supplyVault)
@@ -235,8 +237,8 @@ access(all) contract FlowRate {
         destroy dumpVault
     }
 
-    access(contract) fun withdrawFromVault(tokenIdentifier: String, amount: UFix64): @FungibleToken.Vault {
-        var tempVault: @FungibleToken.Vault? <- nil
+    access(contract) fun withdrawFromVault(tokenIdentifier: String, amount: UFix64): @{FungibleToken.Vault} {
+        var tempVault: @{FungibleToken.Vault}? <- nil
         tempVault <-> self.tokenVaults[tokenIdentifier]
         var finalVault <- tempVault!
         let returnVault <- finalVault.withdraw(amount: amount)
@@ -259,6 +261,6 @@ access(all) contract FlowRate {
         self.bucketListPublicPath = /public/bucketList
         self.liquidityBucketStorageTemplate = "liquidityBucket" // + add id at end
 
-        self.account.save(<- create Administrator(), to: self.AdminResourceStoragePath)
+        self.account.storage.save(<- create Administrator(), to: self.AdminResourceStoragePath)
     }
 }
