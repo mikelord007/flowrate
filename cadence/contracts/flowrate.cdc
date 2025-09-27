@@ -102,7 +102,7 @@ access(all) contract FlowRate {
             supplyTokenVault.balance >= 0.0 : "Are you joking bruv"
         }
         post {
-            //todo: check if supply exceeds limit
+            self.supplyTokensLimit[tokenVaultTypeIdentifier]! >= self.totalSupplied(tokenIdentifier: tokenVaultTypeIdentifier) : "supply exceeds limit"
         }
 
         let tokenVaultTypeIdentifier = supplyTokenVault.getType().identifier
