@@ -7,6 +7,8 @@ access(all) contract FlowRate {
     access(all) let borrowTokensLimit : {String : UFix64} // Type Identifier of Token : Percentage of max borrowable from pool
     access(all) let suppliedTokens: {UInt64: {String: UFix64}} // UUID of liquidity Bucket : {Type Identifier of Token : Amount of supply}
     access(all) let borrowedTokens: {UInt64: {String: UFix64}} // UUID of liquidity Bucket : {Type Identifier of Token : Amount of debt}
+    
+    access(all) let tokenVaults: @{String: FungibleToken.Vault} // Type Identifier of Token : Vault
 
     access(all) resource bucketList {
         access(all) let holdingBucketsList: [UInt64]
@@ -121,11 +123,34 @@ access(all) contract FlowRate {
         return 1.0 // keeping it simple for this hack
     }
 
+    access(contract) fun depositToVault(tokenIdentifier: String, supplyVault: @FungibleToken.Vault) {
+        var tempVault: @FungibleToken.Vault? <- nil
+        tempVault <-> self.tokenVaults[tokenIdentifier]
+        var finalVault <- tempVault!
+        finalVault.deposit(from: <- supplyVault)
+        let dumpVault <- self.tokenVaults[tokenIdentifier] <- finalVault
+        
+        destroy dumpVault
+    }
+
+    access(contract) fun withdrawFromVault(tokenIdentifier: String, amount: UFix64): @FungibleToken.Vault {
+        var tempVault: @FungibleToken.Vault? <- nil
+        tempVault <-> self.tokenVaults[tokenIdentifier]
+        var finalVault <- tempVault!
+        let returnVault <- finalVault.withdraw(amount: amount)
+        let dumpVault <- self.tokenVaults[tokenIdentifier] <- finalVault
+        
+        destroy dumpVault
+        
+        return <- returnVault
+    }
+
     init() {
         self.borrowLimitPerBucket = 0.0
         self.supplyTokensLimit = {}
         self.borrowTokensLimit = {}
         self.suppliedTokens = {}
         self.borrowedTokens = {}
+        self.tokenVaults <- {}
     }
 }
