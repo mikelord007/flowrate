@@ -10,6 +10,11 @@ access(all) contract FlowRate {
     
     access(all) let tokenVaults: @{String: FungibleToken.Vault} // Type Identifier of Token : Vault
 
+    access(all) let AdminResourceStoragePath: StoragePath
+    access(all) let bucketListStoragePath: StoragePath
+    access(all) let bucketListPublicPath: PublicPath
+    access(all) let liquidityBucketStorageTemplate: String
+
     access(all) resource bucketList {
         access(all) let holdingBucketsList: [UInt64]
 
@@ -55,19 +60,19 @@ access(all) contract FlowRate {
     }
 
     access(all) resource Administrator {
-        pub fun modifyBorrowLimitPerBucket(newLimit : UFix64) {
+        access(all) fun modifyBorrowLimitPerBucket(newLimit : UFix64) {
             Lending_Borrow.borrowLimitPerBucket = newLimit
         }
 
-        pub fun modifySupplyTokensLimit(supplyToken: String, limit: UFix64) {
+        access(all) fun modifySupplyTokensLimit(supplyToken: String, limit: UFix64) {
             Lending_Borrow.supplyTokensLimit[supplyToken] = limit
         }
 
-        pub fun modifyBorrowTokensLimit(borrowToken: String, limit: UFix64) {
+        access(all) fun modifyBorrowTokensLimit(borrowToken: String, limit: UFix64) {
             Lending_Borrow.borrowTokensLimit[borrowToken] = limit
         }
 
-        pub fun initTokenVault(tokenIdentifier: String, vault: @FungibleToken.Vault): @FungibleToken.Vault? {
+        access(all) fun initTokenVault(tokenIdentifier: String, vault: @FungibleToken.Vault): @FungibleToken.Vault? {
             if(Lending_Borrow.tokenVaults[tokenIdentifier] == nil ) {
                 Lending_Borrow.tokenVaults[tokenIdentifier] <-! vault
                 return nil
@@ -76,7 +81,7 @@ access(all) contract FlowRate {
             return <- vault
         }
 
-        pub fun liquidateUnderCollateralizedBuckets() {
+        access(all) fun liquidateUnderCollateralizedBuckets() {
             Lending_Borrow.borrowedTokens.forEachKey(fun (key: UInt64): Bool {
                 let underCollateralized = Lending_Borrow.checkIfBucketIsUnderCollateralized(bucket: key)
 
@@ -243,11 +248,17 @@ access(all) contract FlowRate {
     }
 
     init() {
-        self.borrowLimitPerBucket = 0.0
+        self.borrowLimitPerBucket = 80.00
         self.supplyTokensLimit = {}
         self.borrowTokensLimit = {}
         self.suppliedTokens = {}
         self.borrowedTokens = {}
         self.tokenVaults <- {}
+        self.AdminResourceStoragePath = /storage/LandBadmin
+        self.bucketListStoragePath = /storage/bucketList
+        self.bucketListPublicPath = /access(all)lic/bucketList
+        self.liquidityBucketStorageTemplate = "liquidityBucket" // + add id at end
+
+        self.account.save(<- create Administrator(), to: self.AdminResourceStoragePath)
     }
 }
