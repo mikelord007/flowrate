@@ -123,6 +123,16 @@ access(all) contract FlowRate {
         bucket.repayTokens(tokenIdentifier: tokenTypeIdentifier, amount: tokenAmount)
     }
 
+    access(all) fun createEmptyBucket(bucketList: &bucketList): @liquidityBucket {
+        let bucket <- create liquidityBucket()
+        bucketList.addBucketToList(bucketID: bucket.uuid)
+        return <- bucket
+    }
+
+    access(all) fun createBucketList(): @bucketList {
+        return <- create bucketList()
+    }
+
     access(all) fun checkIfBucketIsUnderCollateralized(bucket: UInt64) : Bool {
         var totalSupply = 0.0
         var totalDebt = 0.0
