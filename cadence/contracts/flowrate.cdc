@@ -256,7 +256,7 @@ access(all) contract FlowRate {
         self.tokenVaults <- {}
         self.AdminResourceStoragePath = /storage/LandBadmin
         self.bucketListStoragePath = /storage/bucketList
-        self.bucketListPublicPath = /access(all)lic/bucketList
+        self.bucketListPublicPath = /public/bucketList
         self.liquidityBucketStorageTemplate = "liquidityBucket" // + add id at end
 
         self.account.save(<- create Administrator(), to: self.AdminResourceStoragePath)
