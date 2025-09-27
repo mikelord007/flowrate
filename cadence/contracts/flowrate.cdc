@@ -1,4 +1,4 @@
-import FungibleToken
+import FungibleToken from "../../imports/f233dcee88fe0abe/FungibleToken.cdc"
 
 
 access(all) contract FlowRate {
@@ -61,20 +61,20 @@ access(all) contract FlowRate {
 
     access(all) resource Administrator {
         access(all) fun modifyBorrowLimitPerBucket(newLimit : UFix64) {
-            Lending_Borrow.borrowLimitPerBucket = newLimit
+            FlowRate.borrowLimitPerBucket = newLimit
         }
 
         access(all) fun modifySupplyTokensLimit(supplyToken: String, limit: UFix64) {
-            Lending_Borrow.supplyTokensLimit[supplyToken] = limit
+            FlowRate.supplyTokensLimit[supplyToken] = limit
         }
 
         access(all) fun modifyBorrowTokensLimit(borrowToken: String, limit: UFix64) {
-            Lending_Borrow.borrowTokensLimit[borrowToken] = limit
+            FlowRate.borrowTokensLimit[borrowToken] = limit
         }
 
         access(all) fun initTokenVault(tokenIdentifier: String, vault: @FungibleToken.Vault): @FungibleToken.Vault? {
-            if(Lending_Borrow.tokenVaults[tokenIdentifier] == nil ) {
-                Lending_Borrow.tokenVaults[tokenIdentifier] <-! vault
+            if(FlowRate.tokenVaults[tokenIdentifier] == nil ) {
+                FlowRate.tokenVaults[tokenIdentifier] <-! vault
                 return nil
             }
 
@@ -82,12 +82,12 @@ access(all) contract FlowRate {
         }
 
         access(all) fun liquidateUnderCollateralizedBuckets() {
-            Lending_Borrow.borrowedTokens.forEachKey(fun (key: UInt64): Bool {
-                let underCollateralized = Lending_Borrow.checkIfBucketIsUnderCollateralized(bucket: key)
+            FlowRate.borrowedTokens.forEachKey(fun (key: UInt64): Bool {
+                let underCollateralized = FlowRate.checkIfBucketIsUnderCollateralized(bucket: key)
 
                 if(underCollateralized) {
-                    Lending_Borrow.suppliedTokens.insert(key: key, {})
-                    Lending_Borrow.borrowedTokens.insert(key: key, {})
+                    FlowRate.suppliedTokens.insert(key: key, {})
+                    FlowRate.borrowedTokens.insert(key: key, {})
                 }
 
                 return true
@@ -198,10 +198,10 @@ access(all) contract FlowRate {
     access(all) fun totalSupplied(tokenIdentifier: String): UFix64 {
         var totalSupplied = 0.0
 
-        Lending_Borrow.suppliedTokens.forEachKey(fun (bucket: UInt64): Bool {
+        FlowRate.suppliedTokens.forEachKey(fun (bucket: UInt64): Bool {
             
-            if(Lending_Borrow.suppliedTokens[bucket]![tokenIdentifier] != nil) {
-                totalSupplied = totalSupplied + self.fetchPriceFromOracle(type: tokenIdentifier) * Lending_Borrow.suppliedTokens[bucket]![tokenIdentifier]!
+            if(FlowRate.suppliedTokens[bucket]![tokenIdentifier] != nil) {
+                totalSupplied = totalSupplied + self.fetchPriceFromOracle(type: tokenIdentifier) * FlowRate.suppliedTokens[bucket]![tokenIdentifier]!
             }
 
             return true
@@ -213,10 +213,10 @@ access(all) contract FlowRate {
     access(all) fun totalBorrowed(tokenIdentifier: String): UFix64 {
         var totalBorrowed = 0.0
 
-        Lending_Borrow.borrowedTokens.forEachKey(fun (bucket: UInt64): Bool {
+        FlowRate.borrowedTokens.forEachKey(fun (bucket: UInt64): Bool {
             
-            if(Lending_Borrow.borrowedTokens[bucket]![tokenIdentifier] != nil) {
-                totalBorrowed = totalBorrowed + self.fetchPriceFromOracle(type: tokenIdentifier) * Lending_Borrow.borrowedTokens[bucket]![tokenIdentifier]!
+            if(FlowRate.borrowedTokens[bucket]![tokenIdentifier] != nil) {
+                totalBorrowed = totalBorrowed + self.fetchPriceFromOracle(type: tokenIdentifier) * FlowRate.borrowedTokens[bucket]![tokenIdentifier]!
             }
             
             return true
