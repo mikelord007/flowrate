@@ -32,13 +32,13 @@ access(all) contract FlowRate {
         access(contract) fun unSupplyTokens(tokenIdentifier: String, amount: UFix64) {
             FlowRate.suppliedTokens[self.uuid] = {tokenIdentifier: (FlowRate.suppliedTokens[self.uuid]![tokenIdentifier] != nil ? FlowRate.suppliedTokens[self.uuid]![tokenIdentifier]! : 0.0) - amount}
 
-            //todo: check if undercollateralized
+            assert(!FlowRate.checkIfBucketIsUnderCollateralized(bucket: self.uuid), message : "Undercollateralized UnSupply")
         }
 
         access(contract) fun borrowTokens(tokenIdentifier: String, amount: UFix64) {
             FlowRate.borrowedTokens[self.uuid] = {tokenIdentifier: (FlowRate.borrowedTokens[self.uuid]![tokenIdentifier] != nil ? FlowRate.borrowedTokens[self.uuid]![tokenIdentifier]! : 0.0) + amount}
 
-            //todo: check if undercollateralized
+            assert(!FlowRate.checkIfBucketIsUnderCollateralized(bucket: self.uuid), message : "Undercollateralized Borrow")
         }
 
         access(contract) fun repayTokens(tokenIdentifier: String, amount: UFix64) {
@@ -94,6 +94,31 @@ access(all) contract FlowRate {
 
         bucket.unSupplyTokens(tokenIdentifier: tokenIdentifier, amount: amount) // checks if un supplying doesn't leave bucket undercollateralized
         return <- self.withdrawFromVault(tokenIdentifier: tokenIdentifier, amount: amount)
+    }
+
+    access(all) fun checkIfBucketIsUnderCollateralized(bucket: UInt64) : Bool {
+        var totalSupply = 0.0
+        var totalDebt = 0.0
+
+        self.suppliedTokens[bucket]!.forEachKey(fun (key: String): Bool {
+            totalSupply = self.fetchPriceFromOracle(type: key) * self.suppliedTokens[bucket]![key]! + totalSupply
+            return true
+        })
+
+        self.borrowedTokens[bucket]!.forEachKey(fun (key: String): Bool {
+            totalDebt = self.fetchPriceFromOracle(type: key) * self.borrowedTokens[bucket]![key]! + totalDebt
+            return true
+        })
+
+        if(totalSupply == 0.0 && totalDebt == 0.0 ) {
+            return false
+        }
+        
+        return (totalDebt * 100.0) / totalSupply >= self.borrowLimitPerBucket
+    }
+
+    access(all) fun fetchPriceFromOracle(type: String): UFix64 {
+        return 1.0 // keeping it simple for this hack
     }
 
     init() {
