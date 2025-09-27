@@ -10,6 +10,36 @@ access(all) contract FlowRate {
 
     access(all) resource bucketList {
         access(all) let holdingBucketsList: [UInt64]
+    }
 
+    access(all) resource liquidityBucket {
+        access(contract) fun supplyTokens(tokenIdentifier: String, amount: UFix64) {
+            FlowRate.suppliedTokens[self.uuid] = {tokenIdentifier: (FlowRate.suppliedTokens[self.uuid]![tokenIdentifier] != nil ? FlowRate.suppliedTokens[self.uuid]![tokenIdentifier]! : 0.0) + amount} 
+        }
+
+        access(contract) fun unSupplyTokens(tokenIdentifier: String, amount: UFix64) {
+            FlowRate.suppliedTokens[self.uuid] = {tokenIdentifier: (FlowRate.suppliedTokens[self.uuid]![tokenIdentifier] != nil ? FlowRate.suppliedTokens[self.uuid]![tokenIdentifier]! : 0.0) - amount}
+        }
+
+        access(contract) fun borrowTokens(tokenIdentifier: String, amount: UFix64) {
+            FlowRate.borrowedTokens[self.uuid] = {tokenIdentifier: (FlowRate.borrowedTokens[self.uuid]![tokenIdentifier] != nil ? FlowRate.borrowedTokens[self.uuid]![tokenIdentifier]! : 0.0) + amount}
+        }
+
+        access(contract) fun repayTokens(tokenIdentifier: String, amount: UFix64) {
+            FlowRate.borrowedTokens[self.uuid] = {tokenIdentifier: (FlowRate.borrowedTokens[self.uuid]![tokenIdentifier] != nil ? FlowRate.borrowedTokens[self.uuid]![tokenIdentifier]! : 0.0) - amount}
+        }
+
+    }
+
+    access(all) resource Administrator {
+
+    }
+
+    init() {
+        self.borrowLimitPerBucket = 0.0
+        self.supplyTokensLimit = {}
+        self.borrowTokensLimit = {}
+        self.suppliedTokens = {}
+        self.borrowedTokens = {}
     }
 }
